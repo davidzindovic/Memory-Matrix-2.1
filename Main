@@ -1,0 +1,370 @@
+//to do: popravi start igre in flow (tipkovnica); da tipkovnica večkrat prebere? pazi napačne meritve; pwmjanje 7seg;hitrejsi pwm za animacijo
+
+#include <SPI.h>
+#include <ShiftOutX.h>
+#include <ShiftPinNo.h>
+
+#define zamik 1 //refresh rate zaslona
+#define zamik_luck 100
+#define START_GUMB 2
+#define START_LED 3
+
+shiftOutX regOne(A1, A2, A0, MSBFIRST, 4); 
+
+//7 SEG:
+uint64_t enice[8]={0,shPin1,shPin2,shPin3,shPin4,shPin5,shPin6,shPin7};
+uint64_t desetice[8]={0,shPin9,shPin10,shPin11,shPin12,shPin13,shPin14,shPin15};
+bool zaslon=0;//za PWM-janje
+//lucke:
+uint64_t vrstice[6]={0,shPin25,shPin26,shPin27,shPin28,shPin29};
+uint64_t stolpci[6]={0,shPin17,shPin18,shPin19,shPin20,shPin21};
+//tipkovnica:
+byte h=0,v=0;              // variables used in for loops
+const int period=50;       // A little delay to avoid errors.
+int kdelay=0;              // Non Blocking Delay
+const byte rows=5;         // Rows in Keypad
+const byte columns=5;      // Columns in Keypad
+const byte Output[rows]={9,10,11,12,13};   //Row connceted to Arduino Pins
+const byte Input[columns]={8,7,6,5,4}; //Columns connected to Arduino Pins
+//za igro:
+int cilj[100];//zaporedje tipk, ki bi jih moral igralec pritisniti
+int izbor[100];//zaporedje tipk, ki jih je igralec pritisnil
+int stopnja=0;
+int izguba=0;
+//start gumb/LED:
+int prej=0; int stanje=0; int zacasno=0;
+
+void setup() {
+  for(byte i=0;i<rows;i++)      //Loop to declare output pins.
+  {
+  pinMode(Output[i],OUTPUT);
+  }
+  for(byte s=0;s<columns;s++)  // Loop to decalre Input pins, Initial Pulledup.
+  {
+    pinMode(Input[s],INPUT_PULLUP);
+  }  
+  pinMode(START_GUMB, INPUT_PULLUP);
+  pinMode(START_LED,OUTPUT);
+  attachInterrupt(digitalPinToInterrupt(START_GUMB), sprememba, FALLING);
+  
+  Serial.begin(9600);
+}
+
+void sprememba(){zacasno++;}
+
+byte branje_tipkovnice()                   
+{
+    if(millis()-kdelay>period) //used to make non-blocking delay
+  {
+    kdelay=millis();  //capture time from millis function
+ while(1){
+ static bool no_press_flag=0;    
+  for(byte x=0;x<columns;x++)     
+  {
+     if (digitalRead(Input[x])==HIGH);   
+     else
+     break;
+     if(x==(columns-1))        
+     {
+      no_press_flag=1;
+      h=0;
+      v=0;
+     }
+  }
+  if(no_press_flag==1)  
+  {
+    for(byte r=0;r<rows;r++)  
+    digitalWrite(Output[r],LOW);
+    for(h=0;h<columns;h++)  
+    {
+      if(digitalRead(Input[h])==HIGH) 
+      continue;
+      else   
+      {
+          for (v=0;v<rows;v++)    
+          {
+          digitalWrite(Output[v],HIGH);   
+          if(digitalRead(Input[h])==HIGH)  
+          {
+            no_press_flag=0;               
+            for(byte w=0;w<rows;w++)  
+            digitalWrite(Output[w],LOW);
+            return v*5+h+1;
+          }
+          }
+      }
+    }
+  }
+ //return 50;
+}}}
+
+void lucke(uint8_t LED,uint8_t pocakaj)
+{
+  for(int i=1;i<6;i++)
+  {
+    regOne.pinOff(vrstice[i]);//delay(1);
+    regOne.pinOn(stolpci[i]);//delay(1);
+  }  
+  //delay(pocakaj);
+    regOne.pinOff(stolpci[(LED-1)%5+1]);//delay(20);
+    regOne.pinOn(vrstice[((LED-1)/5)+1]);
+    delay(pocakaj);
+    regOne.pinOn(stolpci[(LED-1)%5+1]);//delay(20);
+    regOne.pinOff(vrstice[((LED-1)/5)+1]);
+    //Serial.print((LED-1)%5+1);Serial.print("<- Stolpci || Vrstice ->");Serial.println(((LED-1)/5)+1);
+   for(int i=1;i<6;i++)
+  {
+    regOne.pinOff(vrstice[i]);//delay(1);
+    regOne.pinOff(stolpci[i]);//delay(1);
+  } 
+  //delay(pocakaj);
+}
+
+void rezultat(uint8_t cifra,bool stanje)
+{if(!stanje)regOne.allOff();
+else{
+switch(cifra%10){
+  
+  case 0:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[5]);
+    regOne.pinOn(enice[6]);
+  break;
+
+  case 1:
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+  break;  
+
+  case 2:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[5]);
+    regOne.pinOn(enice[7]);   
+  break;
+
+  case 3:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[7]);
+  break;  
+
+  case 4:
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[6]);
+    regOne.pinOn(enice[7]);
+  break;
+
+  case 5:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[6]);
+    regOne.pinOn(enice[7]);
+  break;  
+
+  case 6:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[5]);
+    regOne.pinOn(enice[6]);
+    regOne.pinOn(enice[7]);
+  break;  
+
+  case 7:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+  break; 
+
+  case 8:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[5]);
+    regOne.pinOn(enice[6]);
+    regOne.pinOn(enice[7]);
+  break;   
+
+  case 9:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[6]);
+    regOne.pinOn(enice[7]);
+  break;  
+} 
+switch(cifra/10){
+  
+  case 0:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[5]);
+    regOne.pinOn(desetice[6]);
+  break;
+
+  case 1:
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+  break;  
+
+  case 2:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[5]);
+    regOne.pinOn(desetice[7]);   
+  break;
+
+  case 3:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[7]);
+  break;  
+
+  case 4:
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[6]);
+    regOne.pinOn(desetice[7]);
+  break;
+
+  case 5:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[6]);
+    regOne.pinOn(desetice[7]);
+  break;  
+
+  case 6:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[5]);
+    regOne.pinOn(desetice[6]);
+    regOne.pinOn(desetice[7]);
+  break;  
+
+  case 7:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+  break; 
+
+  case 8:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[5]);
+    regOne.pinOn(desetice[6]);
+    regOne.pinOn(desetice[7]);
+  break;   
+
+  case 9:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[6]);
+    regOne.pinOn(desetice[7]);
+  break; } 
+}  
+}
+
+void izziv(int vrednost,int mesto)
+{
+cilj[mesto]=vrednost;
+++stopnja;
+for(int t=0;t<stopnja;t++)//animacija za Simon Says
+  {delay(300);
+  lucke(cilj[t],zamik_luck);
+  }
+}
+
+int igra()
+{ delay(2);digitalWrite(START_LED,0);int tipka=0;stopnja=0;
+while(!izguba){
+randomSeed(analogRead(A3));Serial.print("stopnja:");Serial.println(stopnja);
+rezultat(stopnja,0);delay(50);rezultat(stopnja,1);
+izziv(random(1,26),stopnja);
+Serial.println("New Level");
+for(int runda=0;(runda<stopnja)&&(izguba!=1);runda++)
+  {
+  delay(10);tipka=26;
+  while(tipka>25){
+    //rezultat(stopnja,0);
+  izbor[runda]=branje_tipkovnice();
+  tipka=izbor[runda];
+  Serial.println("cakam");
+   /* rezultat(stopnja,1)*/;}
+  Serial.print("Izbrana tipka:");Serial.println(tipka);
+  lucke(tipka,500);/*rezultat(stopnja,0)*/;//popravi čas prizgane LED tipke
+ if(izbor[runda]!=cilj[runda]){
+  delay(2);Serial.println("Game Over");animacija_tipkovnice(1);izguba=1;zacasno=0;}
+  else{izguba=0;Serial.println("Bravo");/*delay(2);*/}/*rezultat(stopnja,1)*/;
+  }}
+}
+
+void animacija_tipkovnice(int mode){
+  uint8_t pavza=1;
+  switch(mode){
+    case 1:
+      for(int q=0;q<20;q++){
+        lucke(1,pavza);
+        lucke(5,pavza);
+        lucke(7,pavza);
+        lucke(9,pavza);
+        lucke(13,pavza);
+        lucke(17,pavza);
+        lucke(19,pavza);
+        lucke(21,pavza);
+        lucke(25,pavza);
+      }
+    break;
+
+    case 2:
+    break;
+    }
+  }
+
+void loop() 
+{ //Serial.println(branje_tipkovnice());
+  //if (zacasno) igra();
+ /* if(millis()-kdelay>period) //used to make non-blocking delay
+  {
+    kdelay=millis();  //capture time from millis function
+  Serial.println(branje_tipkovnice());}*/
+
+  rezultat(stopnja,1);
+  if (zacasno) igra();
+  if((millis()-prej)>=150){prej=millis();stanje++;}
+  digitalWrite(START_LED,stanje%2);
+  rezultat(stopnja,0);delay(2);
+  
+//animacija_tipkovnice(1);delay(2000);
+ 
+//if(branje_tipkovnice()==13) {while(1){animacija_tipkovnice();}}
+//for(int i=0;i<100;i++){
+//rezultat(i);delay(200);}
+
+/*randomSeed(analogRead(A3));
+rezultat(stopnja);
+izziv(random(1,26),stopnja);
+igra();*/
+}
