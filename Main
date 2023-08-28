@@ -1,4 +1,4 @@
-//to do: popravi start igre in flow (tipkovnica); da tipkovnica večkrat prebere? pazi napačne meritve; pwmjanje 7seg;hitrejsi pwm za animacijo
+//to do:  pwmjanje 7seg;pazi branje tipkovnice(fali)
 
 #include <SPI.h>
 #include <ShiftOutX.h>
@@ -32,7 +32,7 @@ int izbor[100];//zaporedje tipk, ki jih je igralec pritisnil
 int stopnja=0;
 int izguba=0;
 //start gumb/LED:
-int prej=0; int stanje=0; int zacasno=0;
+uint32_t prej=0; bool stanje=0; int zacasno=0;
 
 void setup() {
   for(byte i=0;i<rows;i++)      //Loop to declare output pins.
@@ -48,6 +48,11 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(START_GUMB), sprememba, FALLING);
   
   Serial.begin(9600);
+    for(int i=1;i<6;i++) //PREMAKNENO V SETUP
+  {
+    regOne.pinOff(vrstice[i]);//delay(1);
+    regOne.pinOn(stolpci[i]);//delay(1);
+  }
 }
 
 void sprememba(){zacasno++;}
@@ -98,13 +103,15 @@ byte branje_tipkovnice()
  //return 50;
 }}}
 
-void lucke(uint8_t LED,uint8_t pocakaj)
+void lucke(int LED,uint8_t pocakaj)
 {
-  for(int i=1;i<6;i++)
+  /*
+  for(int i=1;i<6;i++) //PREMAKNENO V SETUP
   {
     regOne.pinOff(vrstice[i]);//delay(1);
     regOne.pinOn(stolpci[i]);//delay(1);
   }  
+  */
   //delay(pocakaj);
     regOne.pinOff(stolpci[(LED-1)%5+1]);//delay(20);
     regOne.pinOn(vrstice[((LED-1)/5)+1]);
@@ -112,12 +119,14 @@ void lucke(uint8_t LED,uint8_t pocakaj)
     regOne.pinOn(stolpci[(LED-1)%5+1]);//delay(20);
     regOne.pinOff(vrstice[((LED-1)/5)+1]);
     //Serial.print((LED-1)%5+1);Serial.print("<- Stolpci || Vrstice ->");Serial.println(((LED-1)/5)+1);
+  /*
    for(int i=1;i<6;i++)
   {
     regOne.pinOff(vrstice[i]);//delay(1);
     regOne.pinOff(stolpci[i]);//delay(1);
   } 
   //delay(pocakaj);
+  */
 }
 
 void rezultat(uint8_t cifra,bool stanje)
@@ -284,24 +293,30 @@ switch(cifra/10){
     regOne.pinOn(desetice[6]);
     regOne.pinOn(desetice[7]);
   break; } 
-}  
+}//Serial.print("Stopnja  ");Serial.println(cifra);  
 }
 
 void izziv(int vrednost,int mesto)
 {
 cilj[mesto]=vrednost;
-++stopnja;
+stopnja++;
+  for(int i=1;i<6;i++) //PREMAKNENO V SETUP
+  {
+    regOne.pinOff(vrstice[i]);//delay(1);
+    regOne.pinOn(stolpci[i]);//delay(1);
+  }
 for(int t=0;t<stopnja;t++)//animacija za Simon Says
-  {delay(300);
-  lucke(cilj[t],zamik_luck);
+  {
+  for(int b=0;b<120;b++)lucke(cilj[t],0.5); //cifra v b-for loopu diktira koliko dolgo je LED prižgana
+  delay(300);
   }
 }
 
 int igra()
-{ delay(2);digitalWrite(START_LED,0);int tipka=0;stopnja=0;
+{int tipka=0;stopnja=0;
 while(!izguba){
 randomSeed(analogRead(A3));Serial.print("stopnja:");Serial.println(stopnja);
-rezultat(stopnja,0);delay(50);rezultat(stopnja,1);
+rezultat(stopnja,0);delay(2);rezultat(stopnja,1);
 izziv(random(1,26),stopnja);
 Serial.println("New Level");
 for(int runda=0;(runda<stopnja)&&(izguba!=1);runda++)
@@ -311,21 +326,21 @@ for(int runda=0;(runda<stopnja)&&(izguba!=1);runda++)
     //rezultat(stopnja,0);
   izbor[runda]=branje_tipkovnice();
   tipka=izbor[runda];
-  Serial.println("cakam");
+  //Serial.println("cakam");
    /* rezultat(stopnja,1)*/;}
   Serial.print("Izbrana tipka:");Serial.println(tipka);
-  lucke(tipka,500);/*rezultat(stopnja,0)*/;//popravi čas prizgane LED tipke
+  lucke(tipka,1000);/*rezultat(stopnja,0)*/;//popravi čas prizgane LED tipke
  if(izbor[runda]!=cilj[runda]){
-  delay(2);Serial.println("Game Over");animacija_tipkovnice(1);izguba=1;zacasno=0;}
-  else{izguba=0;Serial.println("Bravo");/*delay(2);*/}/*rezultat(stopnja,1)*/;
-  }}
+  delay(2);Serial.println("Game Over");animacija_tipkovnice(1);izguba=1;zacasno=0;stanje=0;prej=0;stopnja-=1;}
+  else{izguba=0;Serial.println("Bravo");delay(1000);/*delay(2);*/}/*rezultat(stopnja,1)*/
+  }}izguba=0;
 }
 
 void animacija_tipkovnice(int mode){
-  uint8_t pavza=1;
+  float pavza=0.5;
   switch(mode){
     case 1:
-      for(int q=0;q<20;q++){
+      for(int q=0;q<40;q++){//šopanje PWMja
         lucke(1,pavza);
         lucke(5,pavza);
         lucke(7,pavza);
@@ -352,10 +367,13 @@ void loop()
   Serial.println(branje_tipkovnice());}*/
 
   rezultat(stopnja,1);
-  if (zacasno) igra();
-  if((millis()-prej)>=150){prej=millis();stanje++;}
-  digitalWrite(START_LED,stanje%2);
+  if (zacasno) {digitalWrite(START_LED,0);delay(1500);igra();}
+  if((millis()-prej)>=400){prej=millis();stanje=!stanje;} //400 je hitrost utripanja LED [50%PWM]
+  digitalWrite(START_LED,stanje);Serial.print("prej:");Serial.print(prej);Serial.print("  millis:");Serial.println(millis());
   rezultat(stopnja,0);delay(2);
+
+//for(int c=1;c<26;c++)lucke(c,200);
+
   
 //animacija_tipkovnice(1);delay(2000);
  
