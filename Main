@@ -1,4 +1,4 @@
-//to do:  pwmjanje 7seg;pazi branje tipkovnice(fali)
+//to do:  pwmjanje 7seg;pazi branje tipkovnice(fali), tipkovnica spet fali, pwm zaslona: vsak segment/posamezno cifro pwmjaj
 
 #include <SPI.h>
 #include <ShiftOutX.h>
@@ -75,7 +75,7 @@ byte branje_tipkovnice()
       h=0;
       v=0;
      }
-     pwm_zaslon(0);
+     pwm_zaslon(0,1);
   }
   if(no_press_flag==1)  
   {
@@ -95,13 +95,13 @@ byte branje_tipkovnice()
             no_press_flag=0;               
             for(byte w=0;w<rows;w++)  
             digitalWrite(Output[w],LOW);
-          pwm_zaslon(0);
+          pwm_zaslon(0,1);
             return v*5+h+1;
           }
-          pwm_zaslon(0);
+          pwm_zaslon(0,1);
           }
       }
-      pwm_zaslon(0);
+      pwm_zaslon(0,1);
     }
   }
  //return 50;
@@ -117,13 +117,16 @@ void lucke(int LED,uint16_t pocakaj)
   }  
   */
   //delay(pocakaj);
+    for(int c=0;c<pocakaj;c++){
     regOne.pinOff(stolpci[(LED-1)%5+1]);//delay(20);
     regOne.pinOn(vrstice[((LED-1)/5)+1]);
     //delay(pocakaj/3);
-    pwm_zaslon(pocakaj);//delay(pocakaj);
+    //pwm_zaslon(pocakaj,0);//delay(pocakaj);
+//    pwm_zaslon(0,1);
+    delay(2);
     //delay(pocakaj/3);
     regOne.pinOn(stolpci[(LED-1)%5+1]);//delay(20);
-    regOne.pinOff(vrstice[((LED-1)/5)+1]);
+    regOne.pinOff(vrstice[((LED-1)/5)+1]);delay(0.5);}
     //Serial.print((LED-1)%5+1);Serial.print("<- Stolpci || Vrstice ->");Serial.println(((LED-1)/5)+1);
   /*
    for(int i=1;i<6;i++)
@@ -135,8 +138,9 @@ void lucke(int LED,uint16_t pocakaj)
   */
 }
 
-void rezultat(uint8_t cifra,bool stanje,bool esktrem)
-{if(ekstrem)regOne.allOff();
+void rezultat(uint8_t cifra,bool stanje,bool ekstrem)
+{
+  if(ekstrem && !stanje)regOne.allOff();
 else{
   if(!stanje)
 {//regOne.allOff();
@@ -146,6 +150,8 @@ for(int w=1;w<15;w++)
     else regOne.pinOff(desetice[w-7]);
   }
 }
+
+//if(!stanje)regOne.allOff();
 else{
 switch(cifra%10){
   
@@ -322,8 +328,9 @@ cilj[mesto]=vrednost;
   }
 for(int t=0;t<(stopnja+1);t++)//animacija za Simon Says
   {
-  for(int b=0;b<80;b++)lucke(cilj[t],0.5); //cifra v b-for loopu diktira koliko dolgo je LED prižgana
-  pwm_zaslon(150);//spremeni
+  //for(int b=0;b<80;b++)lucke(cilj[t],0.5); //cifra v b-for loopu diktira koliko dolgo je LED prižgana
+  lucke(cilj[t],50);
+  pwm_zaslon(150,0);//spremeni
   }
 }
 
@@ -332,7 +339,7 @@ int igra()
 while(!izguba){
 randomSeed(analogRead(A3));Serial.print("stopnja:");Serial.println(stopnja);
 //rezultat(stopnja,0);delay(2);rezultat(stopnja,1);
-pwm_zaslon(300);
+pwm_zaslon(300,1);
 izziv(random(1,26),stopnja);
 Serial.println("New Level");
 for(int runda=0;(runda<(stopnja+1))&&(izguba!=1);runda++)
@@ -341,10 +348,16 @@ for(int runda=0;(runda<(stopnja+1))&&(izguba!=1);runda++)
   while(tipka>25){
     //rezultat(stopnja,0);
   izbor[runda]=branje_tipkovnice(); //if(zaslon!=1)pwm_zaslon(0);
+  pwm_zaslon(3,1);
   tipka=izbor[runda];
   //Serial.println("cakam");
    /* rezultat(stopnja,1)*/;}
   Serial.print("Izbrana tipka:");Serial.println(tipka);
+    for(int i=1;i<6;i++) //ker omogocimo all.Off pr tipkovnici
+  {
+    regOne.pinOff(vrstice[i]);//delay(1);
+    regOne.pinOn(stolpci[i]);//delay(1);
+  }
   lucke(tipka,400);
  if(izbor[runda]!=cilj[runda]){
   delay(2);Serial.println("Game Over");animacija_tipkovnice(1);izguba=1;zacasno=0;stanje=0;prej=0;}
@@ -382,7 +395,7 @@ void pwm_zaslon(uint32_t duration, bool izjema)
       zaslon=!zaslon;
       rezultat(stopnja,zaslon,izjema);  
     }
-    rezultat(stopnja,1);
+    if (duration>2)rezultat(stopnja,1,izjema);
 }
 
 void loop() 
@@ -393,11 +406,11 @@ void loop()
     kdelay=millis();  //capture time from millis function
   Serial.println(branje_tipkovnice());}*/
 
-  rezultat(stopnja,1);
+  rezultat(stopnja,1,1);
   if (zacasno) {digitalWrite(START_LED,0);delay(1500);igra();}
   if((millis()-prej)>=400){prej=millis();stanje=!stanje;} //400 je hitrost utripanja LED [50%PWM]
   digitalWrite(START_LED,stanje);//Serial.print("prej:");Serial.print(prej);Serial.print("  millis:");Serial.println(millis());
-  delay(2);rezultat(stopnja,0);delay(2);
+  delay(0.5);rezultat(stopnja,0,1);delay(1);
 
 //for(int c=1;c<26;c++)lucke(c,200);
 
@@ -413,5 +426,3 @@ rezultat(stopnja);
 izziv(random(1,26),stopnja);
 igra();*/
 }
-
-
