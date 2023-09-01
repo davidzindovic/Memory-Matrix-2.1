@@ -29,7 +29,7 @@ const byte Input[columns]={8,7,6,5,4}; //Columns connected to Arduino Pins
 //za igro:
 int cilj[100];//zaporedje tipk, ki bi jih moral igralec pritisniti
 int izbor[100];//zaporedje tipk, ki jih je igralec pritisnil
-int stopnja=0;
+int stopnja;
 int izguba=0;
 //start gumb/LED:
 uint32_t prej=0; bool stanje=0; int zacasno=0;
@@ -58,7 +58,7 @@ void setup() {
 void sprememba(){zacasno++;}
 
 byte branje_tipkovnice()                   
-{
+{bool zasloncek=0;
     if(millis()-kdelay>period) //used to make non-blocking delay
   {
     kdelay=millis();  //capture time from millis function
@@ -75,7 +75,8 @@ byte branje_tipkovnice()
       h=0;
       v=0;
      }
-     pwm_zaslon(0,1);
+     zasloncek=!zasloncek;
+     pwm_zaslon(0,zasloncek);
   }
   if(no_press_flag==1)  
   {
@@ -95,13 +96,16 @@ byte branje_tipkovnice()
             no_press_flag=0;               
             for(byte w=0;w<rows;w++)  
             digitalWrite(Output[w],LOW);
-          pwm_zaslon(0,1);
+          zasloncek=!zasloncek;
+          pwm_zaslon(0,zasloncek);
             return v*5+h+1;
           }
-          pwm_zaslon(0,1);
+          zasloncek=!zasloncek;
+          pwm_zaslon(0,zasloncek);
           }
       }
-      pwm_zaslon(0,1);
+      zasloncek=!zasloncek;
+      pwm_zaslon(0,zasloncek);
     }
   }
  //return 50;
@@ -117,16 +121,16 @@ void lucke(int LED,uint16_t pocakaj)
   }  
   */
   //delay(pocakaj);
-    for(int c=0;c<pocakaj;c++){
+    //for(int c=0;c<pocakaj;c++){
     regOne.pinOff(stolpci[(LED-1)%5+1]);//delay(20);
     regOne.pinOn(vrstice[((LED-1)/5)+1]);
     //delay(pocakaj/3);
     //pwm_zaslon(pocakaj,0);//delay(pocakaj);
 //    pwm_zaslon(0,1);
-    delay(2);
+    pwm_zaslon(pocakaj,0);//delay(2);
     //delay(pocakaj/3);
     regOne.pinOn(stolpci[(LED-1)%5+1]);//delay(20);
-    regOne.pinOff(vrstice[((LED-1)/5)+1]);delay(0.5);}
+    regOne.pinOff(vrstice[((LED-1)/5)+1]);delay(0.5);//}
     //Serial.print((LED-1)%5+1);Serial.print("<- Stolpci || Vrstice ->");Serial.println(((LED-1)/5)+1);
   /*
    for(int i=1;i<6;i++)
@@ -138,7 +142,7 @@ void lucke(int LED,uint16_t pocakaj)
   */
 }
 
-void rezultat(uint8_t cifra,bool stanje,bool ekstrem)
+/*void rezultat(uint8_t cifra,bool stanje,bool ekstrem)
 {
   if(ekstrem && !stanje)regOne.allOff();
 else{
@@ -315,7 +319,357 @@ switch(cifra/10){
     regOne.pinOn(desetice[7]);
   break; } 
 }//Serial.print("Stopnja  ");Serial.println(cifra);  
-}}
+}}*/
+
+void rezultat(uint8_t cifra,uint32_t trajanje,bool ekstrem)
+{uint8_t ponovitve=0;//Serial.print("cifra v loopu:  ");Serial.println(cifra);
+if(trajanje>2)
+{
+    regOne.pinOff(enice[1]);
+    regOne.pinOff(enice[2]);
+    regOne.pinOff(enice[3]);
+    regOne.pinOff(enice[4]);
+    regOne.pinOff(enice[5]);
+    regOne.pinOff(enice[6]);
+    regOne.pinOff(enice[7]);
+    regOne.pinOff(desetice[1]);
+    regOne.pinOff(desetice[2]);
+    regOne.pinOff(desetice[3]);
+    regOne.pinOff(desetice[4]);
+    regOne.pinOff(desetice[5]);
+    regOne.pinOff(desetice[6]);
+    regOne.pinOff(desetice[7]);
+}
+  
+  if(ekstrem)regOne.allOff();
+else{
+switch(cifra%10){
+  
+  case 0:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[5]);
+    regOne.pinOn(enice[6]);
+  break;
+
+  case 1:
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+  break;  
+
+  case 2:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[5]);
+    regOne.pinOn(enice[7]);   
+  break;
+
+  case 3:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[7]);
+  break;  
+
+  case 4:
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[6]);
+    regOne.pinOn(enice[7]);
+  break;
+
+  case 5:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[6]);
+    regOne.pinOn(enice[7]);
+  break;  
+
+  case 6:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[5]);
+    regOne.pinOn(enice[6]);
+    regOne.pinOn(enice[7]);
+  break;  
+
+  case 7:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+  break; 
+
+  case 8:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[5]);
+    regOne.pinOn(enice[6]);
+    regOne.pinOn(enice[7]);
+  break;   
+
+  case 9:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[6]);
+    regOne.pinOn(enice[7]);
+  break;  
+} 
+switch(cifra/10){
+  
+  case 0:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[5]);
+    regOne.pinOn(desetice[6]);
+  break;
+
+  case 1:
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+  break;  
+
+  case 2:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[5]);
+    regOne.pinOn(desetice[7]);   
+  break;
+
+  case 3:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[7]);
+  break;  
+
+  case 4:
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[6]);
+    regOne.pinOn(desetice[7]);
+  break;
+
+  case 5:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[6]);
+    regOne.pinOn(desetice[7]);
+  break;  
+
+  case 6:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[5]);
+    regOne.pinOn(desetice[6]);
+    regOne.pinOn(desetice[7]);
+  break;  
+
+  case 7:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+  break; 
+
+  case 8:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[5]);
+    regOne.pinOn(desetice[6]);
+    regOne.pinOn(desetice[7]);
+  break;   
+
+  case 9:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[6]);
+    regOne.pinOn(desetice[7]);
+  break; }
+  if(trajanje>2){
+for(int w=0;w<trajanje;w++){ponovitve++;  
+ //prvo vklop, pol pwm
+  switch(cifra%10){
+  case 0:
+if(ponovitve==1){regOne.pinOff(enice[1]);delay(2);regOne.pinOn(enice[1]);}
+else if(ponovitve==2){regOne.pinOn(enice[2]);delay(2);regOne.pinOn(enice[2]);}
+else if(ponovitve==3){regOne.pinOn(enice[3]);delay(2);regOne.pinOn(enice[3]);}
+else if(ponovitve==4){regOne.pinOn(enice[4]);delay(2);regOne.pinOn(enice[4]);}
+else if(ponovitve==5){regOne.pinOn(enice[5]);delay(2);regOne.pinOn(enice[5]);}
+else if(ponovitve==6){regOne.pinOn(enice[6]);delay(2);regOne.pinOn(enice[6]);}
+  break;
+
+  case 1:
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+  break;  
+
+  case 2:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[5]);
+    regOne.pinOn(enice[7]);   
+  break;
+
+  case 3:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[7]);
+  break;  
+
+  case 4:
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[6]);
+    regOne.pinOn(enice[7]);
+  break;
+
+  case 5:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[6]);
+    regOne.pinOn(enice[7]);
+  break;  
+
+  case 6:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[5]);
+    regOne.pinOn(enice[6]);
+    regOne.pinOn(enice[7]);
+  break;  
+
+  case 7:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+  break; 
+
+  case 8:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[5]);
+    regOne.pinOn(enice[6]);
+    regOne.pinOn(enice[7]);
+  break;   
+
+  case 9:
+    regOne.pinOn(enice[1]);
+    regOne.pinOn(enice[2]);
+    regOne.pinOn(enice[3]);
+    regOne.pinOn(enice[4]);
+    regOne.pinOn(enice[6]);
+    regOne.pinOn(enice[7]);
+  break;  
+} 
+switch(cifra/10){
+  
+  case 0:
+if(ponovitve==1){regOne.pinOff(enice[1]);delay(2);regOne.pinOn(enice[1]);}
+else if(ponovitve==2){regOne.pinOn(enice[2]);delay(2);regOne.pinOn(enice[2]);}
+else if(ponovitve==3){regOne.pinOn(enice[3]);delay(2);regOne.pinOn(enice[3]);}
+else if(ponovitve==4){regOne.pinOn(enice[4]);delay(2);regOne.pinOn(enice[4]);}
+else if(ponovitve==5){regOne.pinOn(enice[5]);delay(2);regOne.pinOn(enice[5]);}
+else if(ponovitve==6){regOne.pinOn(enice[6]);delay(2);regOne.pinOn(enice[6]);}
+  break;
+
+  case 1:
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+  break;  
+
+  case 2:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[5]);
+    regOne.pinOn(desetice[7]);   
+  break;
+
+  case 3:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[7]);
+  break;  
+
+  case 4:
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[6]);
+    regOne.pinOn(desetice[7]);
+  break;
+
+  case 5:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[6]);
+    regOne.pinOn(desetice[7]);
+  break;  
+
+  case 6:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[5]);
+    regOne.pinOn(desetice[6]);
+    regOne.pinOn(desetice[7]);
+  break;  
+
+  case 7:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+  break; 
+
+  case 8:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[5]);
+    regOne.pinOn(desetice[6]);
+    regOne.pinOn(desetice[7]);
+  break;   
+
+  case 9:
+    regOne.pinOn(desetice[1]);
+    regOne.pinOn(desetice[2]);
+    regOne.pinOn(desetice[3]);
+    regOne.pinOn(desetice[4]);
+    regOne.pinOn(desetice[6]);
+    regOne.pinOn(desetice[7]);
+  break; } 
+  }
+}}//Serial.print("Stopnja  ");Serial.println(cifra);  
+}
 
 void izziv(int vrednost,int mesto)
 {
@@ -337,22 +691,22 @@ for(int t=0;t<(stopnja+1);t++)//animacija za Simon Says
 int igra()
 {int tipka=0;stopnja=0;
 while(!izguba){
-randomSeed(analogRead(A3));Serial.print("stopnja:");Serial.println(stopnja);
+randomSeed(analogRead(A3));//Serial.print("stopnja:");Serial.println(stopnja);
 //rezultat(stopnja,0);delay(2);rezultat(stopnja,1);
-pwm_zaslon(300,1);
+pwm_zaslon(300,0);
 izziv(random(1,26),stopnja);
-Serial.println("New Level");
+//Serial.println("New Level");
 for(int runda=0;(runda<(stopnja+1))&&(izguba!=1);runda++)
   {
   delay(10);tipka=26;
   while(tipka>25){
     //rezultat(stopnja,0);
   izbor[runda]=branje_tipkovnice(); //if(zaslon!=1)pwm_zaslon(0);
-  pwm_zaslon(3,1);
+  pwm_zaslon(0,0);
   tipka=izbor[runda];
   //Serial.println("cakam");
    /* rezultat(stopnja,1)*/;}
-  Serial.print("Izbrana tipka:");Serial.println(tipka);
+ // Serial.print("Izbrana tipka:");Serial.println(tipka);
     for(int i=1;i<6;i++) //ker omogocimo all.Off pr tipkovnici
   {
     regOne.pinOff(vrstice[i]);//delay(1);
@@ -361,8 +715,8 @@ for(int runda=0;(runda<(stopnja+1))&&(izguba!=1);runda++)
   lucke(tipka,400);
  if(izbor[runda]!=cilj[runda]){
   delay(2);Serial.println("Game Over");animacija_tipkovnice(1);izguba=1;zacasno=0;stanje=0;prej=0;}
-  else{izguba=0;Serial.println("Bravo");delay(500);/*delay(2);*/}/*rezultat(stopnja,1)*/
-  }if(izguba!=1)stopnja++;
+  else{izguba=0;/*Serial.println("Bravo");*/pwm_zaslon(500,0);/*delay(2);*/}/*rezultat(stopnja,1)*/
+  }if(izguba!=1)stopnja=stopnja+1;
   }izguba=0;
 }
 
@@ -390,12 +744,12 @@ void animacija_tipkovnice(int mode){
 
 void pwm_zaslon(uint32_t duration, bool izjema)
 {
-    for(int p=0;p<(duration+1);p++)
-    { 
-      zaslon=!zaslon;
-      rezultat(stopnja,zaslon,izjema);  
-    }
-    if (duration>2)rezultat(stopnja,1,izjema);
+   // for(int p=0;p<(duration+1);p++)
+   // { 
+   //   zaslon=!zaslon;
+      rezultat(stopnja,duration,izjema);  
+   // }
+    if (duration>2)rezultat(stopnja,0,izjema);
 }
 
 void loop() 
@@ -406,7 +760,7 @@ void loop()
     kdelay=millis();  //capture time from millis function
   Serial.println(branje_tipkovnice());}*/
 
-  rezultat(stopnja,1,1);
+  rezultat(stopnja,0,0);
   if (zacasno) {digitalWrite(START_LED,0);delay(1500);igra();}
   if((millis()-prej)>=400){prej=millis();stanje=!stanje;} //400 je hitrost utripanja LED [50%PWM]
   digitalWrite(START_LED,stanje);//Serial.print("prej:");Serial.print(prej);Serial.print("  millis:");Serial.println(millis());
