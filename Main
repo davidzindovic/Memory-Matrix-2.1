@@ -75,6 +75,7 @@ byte branje_tipkovnice()
       h=0;
       v=0;
      }
+     pwm_zaslon(0);
   }
   if(no_press_flag==1)  
   {
@@ -94,16 +95,19 @@ byte branje_tipkovnice()
             no_press_flag=0;               
             for(byte w=0;w<rows;w++)  
             digitalWrite(Output[w],LOW);
+          pwm_zaslon(0);
             return v*5+h+1;
           }
+          pwm_zaslon(0);
           }
       }
+      pwm_zaslon(0);
     }
   }
  //return 50;
 }}}
 
-void lucke(int LED,uint8_t pocakaj)
+void lucke(int LED,uint16_t pocakaj)
 {
   /*
   for(int i=1;i<6;i++) //PREMAKNENO V SETUP
@@ -115,7 +119,9 @@ void lucke(int LED,uint8_t pocakaj)
   //delay(pocakaj);
     regOne.pinOff(stolpci[(LED-1)%5+1]);//delay(20);
     regOne.pinOn(vrstice[((LED-1)/5)+1]);
-    delay(pocakaj);
+    //delay(pocakaj/3);
+    pwm_zaslon(pocakaj);//delay(pocakaj);
+    //delay(pocakaj/3);
     regOne.pinOn(stolpci[(LED-1)%5+1]);//delay(20);
     regOne.pinOff(vrstice[((LED-1)/5)+1]);
     //Serial.print((LED-1)%5+1);Serial.print("<- Stolpci || Vrstice ->");Serial.println(((LED-1)/5)+1);
@@ -129,8 +135,17 @@ void lucke(int LED,uint8_t pocakaj)
   */
 }
 
-void rezultat(uint8_t cifra,bool stanje)
-{if(!stanje)regOne.allOff();
+void rezultat(uint8_t cifra,bool stanje,bool esktrem)
+{if(ekstrem)regOne.allOff();
+else{
+  if(!stanje)
+{//regOne.allOff();
+for(int w=1;w<15;w++)
+  {
+    if(w<8)regOne.pinOff(enice[w]);
+    else regOne.pinOff(desetice[w-7]);
+  }
+}
 else{
 switch(cifra%10){
   
@@ -294,21 +309,21 @@ switch(cifra/10){
     regOne.pinOn(desetice[7]);
   break; } 
 }//Serial.print("Stopnja  ");Serial.println(cifra);  
-}
+}}
 
 void izziv(int vrednost,int mesto)
 {
 cilj[mesto]=vrednost;
-stopnja++;
-  for(int i=1;i<6;i++) //PREMAKNENO V SETUP
+//stopnja++;
+  for(int i=1;i<6;i++)
   {
     regOne.pinOff(vrstice[i]);//delay(1);
     regOne.pinOn(stolpci[i]);//delay(1);
   }
-for(int t=0;t<stopnja;t++)//animacija za Simon Says
+for(int t=0;t<(stopnja+1);t++)//animacija za Simon Says
   {
-  for(int b=0;b<120;b++)lucke(cilj[t],0.5); //cifra v b-for loopu diktira koliko dolgo je LED prižgana
-  delay(300);
+  for(int b=0;b<80;b++)lucke(cilj[t],0.5); //cifra v b-for loopu diktira koliko dolgo je LED prižgana
+  pwm_zaslon(150);//spremeni
   }
 }
 
@@ -316,24 +331,26 @@ int igra()
 {int tipka=0;stopnja=0;
 while(!izguba){
 randomSeed(analogRead(A3));Serial.print("stopnja:");Serial.println(stopnja);
-rezultat(stopnja,0);delay(2);rezultat(stopnja,1);
+//rezultat(stopnja,0);delay(2);rezultat(stopnja,1);
+pwm_zaslon(300);
 izziv(random(1,26),stopnja);
 Serial.println("New Level");
-for(int runda=0;(runda<stopnja)&&(izguba!=1);runda++)
+for(int runda=0;(runda<(stopnja+1))&&(izguba!=1);runda++)
   {
   delay(10);tipka=26;
   while(tipka>25){
     //rezultat(stopnja,0);
-  izbor[runda]=branje_tipkovnice();
+  izbor[runda]=branje_tipkovnice(); //if(zaslon!=1)pwm_zaslon(0);
   tipka=izbor[runda];
   //Serial.println("cakam");
    /* rezultat(stopnja,1)*/;}
   Serial.print("Izbrana tipka:");Serial.println(tipka);
-  lucke(tipka,1000);/*rezultat(stopnja,0)*/;//popravi čas prizgane LED tipke
+  lucke(tipka,400);
  if(izbor[runda]!=cilj[runda]){
-  delay(2);Serial.println("Game Over");animacija_tipkovnice(1);izguba=1;zacasno=0;stanje=0;prej=0;stopnja-=1;}
-  else{izguba=0;Serial.println("Bravo");delay(1000);/*delay(2);*/}/*rezultat(stopnja,1)*/
-  }}izguba=0;
+  delay(2);Serial.println("Game Over");animacija_tipkovnice(1);izguba=1;zacasno=0;stanje=0;prej=0;}
+  else{izguba=0;Serial.println("Bravo");delay(500);/*delay(2);*/}/*rezultat(stopnja,1)*/
+  }if(izguba!=1)stopnja++;
+  }izguba=0;
 }
 
 void animacija_tipkovnice(int mode){
@@ -358,6 +375,16 @@ void animacija_tipkovnice(int mode){
     }
   }
 
+void pwm_zaslon(uint32_t duration, bool izjema)
+{
+    for(int p=0;p<(duration+1);p++)
+    { 
+      zaslon=!zaslon;
+      rezultat(stopnja,zaslon,izjema);  
+    }
+    rezultat(stopnja,1);
+}
+
 void loop() 
 { //Serial.println(branje_tipkovnice());
   //if (zacasno) igra();
@@ -369,8 +396,8 @@ void loop()
   rezultat(stopnja,1);
   if (zacasno) {digitalWrite(START_LED,0);delay(1500);igra();}
   if((millis()-prej)>=400){prej=millis();stanje=!stanje;} //400 je hitrost utripanja LED [50%PWM]
-  digitalWrite(START_LED,stanje);Serial.print("prej:");Serial.print(prej);Serial.print("  millis:");Serial.println(millis());
-  rezultat(stopnja,0);delay(2);
+  digitalWrite(START_LED,stanje);//Serial.print("prej:");Serial.print(prej);Serial.print("  millis:");Serial.println(millis());
+  delay(2);rezultat(stopnja,0);delay(2);
 
 //for(int c=1;c<26;c++)lucke(c,200);
 
@@ -386,3 +413,5 @@ rezultat(stopnja);
 izziv(random(1,26),stopnja);
 igra();*/
 }
+
+
