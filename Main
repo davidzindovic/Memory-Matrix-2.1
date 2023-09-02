@@ -1,4 +1,7 @@
 //to do:quality of life(vmesni casi), pwmjadnje 7seg(probi se cele cifre ali pa več segmentov hkrati);drgač dela
+//notes: pwm_zaslon rabi večje cifre kot delay, spucaj komentarje in spiši primerne :)
+//za probat: vsak waiting loop prizgi en segment ugasni drugega
+//preizkus gretja: waiting loop - OK
 
 #include <SPI.h>
 #include <ShiftOutX.h>
@@ -15,6 +18,7 @@ shiftOutX regOne(A1, A2, A0, MSBFIRST, 4);
 uint64_t enice[8]={0,shPin1,shPin2,shPin3,shPin4,shPin5,shPin6,shPin7};
 uint64_t desetice[8]={0,shPin9,shPin10,shPin11,shPin12,shPin13,shPin14,shPin15};
 bool zaslon=0;//za PWM-janje
+uint32_t ponovitve=0;
 //lucke:
 uint64_t vrstice[6]={0,shPin25,shPin26,shPin27,shPin28,shPin29};
 uint64_t stolpci[6]={0,shPin17,shPin18,shPin19,shPin20,shPin21};
@@ -506,16 +510,16 @@ switch(cifra/10){
     regOne.pinOn(desetice[7]);
   break; }
   if(trajanje>2){
-for(int ponovitve=0;ponovitve<trajanje;ponovitve++){
- //prvo vklop, pol pwm
+for(int q=0;q<trajanje;q++){ponovitve+=q;if(ponovitve>7)ponovitve-=7;
+ //prvo vklop, pol pwm 
   switch(cifra%10){
   case 0:
-if(ponovitve==1){regOne.pinOff(enice[1]);delay(2);regOne.pinOn(enice[1]);}
-else if(ponovitve==2){regOne.pinOff(enice[2]);delay(2);regOne.pinOn(enice[2]);}
-else if(ponovitve==3){regOne.pinOff(enice[3]);delay(2);regOne.pinOn(enice[3]);}
-else if(ponovitve==4){regOne.pinOff(enice[4]);delay(2);regOne.pinOn(enice[4]);}
-else if(ponovitve==5){regOne.pinOff(enice[5]);delay(2);regOne.pinOn(enice[5]);}
-else if(ponovitve==6){regOne.pinOff(enice[6]);delay(2);regOne.pinOn(enice[6]);}
+if(ponovitve==1){regOne.pinOff(enice[1]);delay(1);regOne.pinOn(enice[1]);}
+else if(ponovitve==2){regOne.pinOff(enice[2]);delay(1);regOne.pinOn(enice[2]);}
+else if(ponovitve==3){regOne.pinOff(enice[3]);delay(1);regOne.pinOn(enice[3]);}
+else if(ponovitve==4){regOne.pinOff(enice[4]);delay(1);regOne.pinOn(enice[4]);}
+else if(ponovitve==5){regOne.pinOff(enice[5]);delay(1);regOne.pinOn(enice[5]);}
+else if(ponovitve==6){regOne.pinOff(enice[6]);delay(1);regOne.pinOn(enice[6]);}
   break;
 
   case 1:
@@ -591,12 +595,12 @@ else if(ponovitve==6){regOne.pinOff(enice[7]);delay(2);regOne.pinOn(enice[7]);}
 switch(cifra/10){
   
   case 0:
-if(ponovitve==1){regOne.pinOff(desetice[1]);delay(2);regOne.pinOn(desetice[1]);}
-else if(ponovitve==2){regOne.pinOff(desetice[2]);delay(2);regOne.pinOn(desetice[2]);}
-else if(ponovitve==3){regOne.pinOff(desetice[3]);delay(2);regOne.pinOn(desetice[3]);}
-else if(ponovitve==4){regOne.pinOff(desetice[4]);delay(2);regOne.pinOn(desetice[4]);}
-else if(ponovitve==5){regOne.pinOff(desetice[5]);delay(2);regOne.pinOn(desetice[5]);}
-else if(ponovitve==6){regOne.pinOff(desetice[6]);delay(2);regOne.pinOn(desetice[6]);}
+if(ponovitve==1){regOne.pinOff(desetice[1]);delay(1);regOne.pinOn(desetice[1]);}
+else if(ponovitve==2){regOne.pinOff(desetice[2]);delay(1);regOne.pinOn(desetice[2]);}
+else if(ponovitve==3){regOne.pinOff(desetice[3]);delay(1);regOne.pinOn(desetice[3]);}
+else if(ponovitve==4){regOne.pinOff(desetice[4]);delay(1);regOne.pinOn(desetice[4]);}
+else if(ponovitve==5){regOne.pinOff(desetice[5]);delay(1);regOne.pinOn(desetice[5]);}
+else if(ponovitve==6){regOne.pinOff(desetice[6]);delay(1);regOne.pinOn(desetice[6]);}
   break;
 
   case 1:
@@ -761,11 +765,11 @@ void loop()
     kdelay=millis();  //capture time from millis function
   Serial.println(branje_tipkovnice());}*/
 
-  rezultat(stopnja,0,0);
+  rezultat(stopnja,1,0);
   if (zacasno) {stopnja=0;digitalWrite(START_LED,0);/*delay(1500)*/pwm_zaslon(400000,0);igra();}
   if((millis()-prej)>=400){prej=millis();stanje=!stanje;} //400 je hitrost utripanja LED [50%PWM]
   digitalWrite(START_LED,stanje);//Serial.print("prej:");Serial.print(prej);Serial.print("  millis:");Serial.println(millis());
-  delay(0.5);rezultat(stopnja,0,1);delay(1);
+  delay(0.5);rezultat(stopnja,1,1);delay(1);
 
 //for(int c=1;c<26;c++)lucke(c,200);
 
