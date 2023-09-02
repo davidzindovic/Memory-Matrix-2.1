@@ -1,4 +1,4 @@
-//to do:  pwmjanje 7seg;pazi branje tipkovnice(fali), tipkovnica spet fali, pwm zaslona: vsak segment/posamezno cifro pwmjaj
+//to do:quality of life(vmesni casi), pwmjadnje 7seg(probi se cele cifre ali pa več segmentov hkrati);drgač dela
 
 #include <SPI.h>
 #include <ShiftOutX.h>
@@ -29,7 +29,7 @@ const byte Input[columns]={8,7,6,5,4}; //Columns connected to Arduino Pins
 //za igro:
 int cilj[100];//zaporedje tipk, ki bi jih moral igralec pritisniti
 int izbor[100];//zaporedje tipk, ki jih je igralec pritisnil
-int stopnja;
+uint8_t stopnja;
 int izguba=0;
 //start gumb/LED:
 uint32_t prej=0; bool stanje=0; int zacasno=0;
@@ -59,9 +59,9 @@ void sprememba(){zacasno++;}
 
 byte branje_tipkovnice()                   
 {bool zasloncek=0;
-    if(millis()-kdelay>period) //used to make non-blocking delay
-  {
-    kdelay=millis();  //capture time from millis function
+//    if(millis()-kdelay>period) //used to make non-blocking delay
+//  {
+//    kdelay=millis();  //capture time from millis function
  while(1){
  static bool no_press_flag=0;    
   for(byte x=0;x<columns;x++)     
@@ -109,9 +109,9 @@ byte branje_tipkovnice()
     }
   }
  //return 50;
-}}}
+}}//}
 
-void lucke(int LED,uint16_t pocakaj)
+void lucke(int LED,uint16_t pocakaj, bool pwm)
 {
   /*
   for(int i=1;i<6;i++) //PREMAKNENO V SETUP
@@ -127,7 +127,8 @@ void lucke(int LED,uint16_t pocakaj)
     //delay(pocakaj/3);
     //pwm_zaslon(pocakaj,0);//delay(pocakaj);
 //    pwm_zaslon(0,1);
-    pwm_zaslon(pocakaj,0);//delay(2);
+   if(!pwm) pwm_zaslon(pocakaj,0);//delay(2);
+    else delay(pocakaj);
     //delay(pocakaj/3);
     regOne.pinOn(stolpci[(LED-1)%5+1]);//delay(20);
     regOne.pinOff(vrstice[((LED-1)/5)+1]);delay(0.5);//}
@@ -322,7 +323,7 @@ switch(cifra/10){
 }}*/
 
 void rezultat(uint8_t cifra,uint32_t trajanje,bool ekstrem)
-{uint8_t ponovitve=0;//Serial.print("cifra v loopu:  ");Serial.println(cifra);
+{//Serial.print("cifra v loopu:  ");Serial.println(cifra);
 if(trajanje>2)
 {
     regOne.pinOff(enice[1]);
@@ -341,7 +342,7 @@ if(trajanje>2)
     regOne.pinOff(desetice[7]);
 }
   
-  if(ekstrem)regOne.allOff();
+  if(ekstrem && trajanje<2)regOne.allOff();
 else{
 switch(cifra%10){
   
@@ -505,167 +506,167 @@ switch(cifra/10){
     regOne.pinOn(desetice[7]);
   break; }
   if(trajanje>2){
-for(int w=0;w<trajanje;w++){ponovitve++;  
+for(int ponovitve=0;ponovitve<trajanje;ponovitve++){
  //prvo vklop, pol pwm
   switch(cifra%10){
   case 0:
 if(ponovitve==1){regOne.pinOff(enice[1]);delay(2);regOne.pinOn(enice[1]);}
-else if(ponovitve==2){regOne.pinOn(enice[2]);delay(2);regOne.pinOn(enice[2]);}
-else if(ponovitve==3){regOne.pinOn(enice[3]);delay(2);regOne.pinOn(enice[3]);}
-else if(ponovitve==4){regOne.pinOn(enice[4]);delay(2);regOne.pinOn(enice[4]);}
-else if(ponovitve==5){regOne.pinOn(enice[5]);delay(2);regOne.pinOn(enice[5]);}
-else if(ponovitve==6){regOne.pinOn(enice[6]);delay(2);regOne.pinOn(enice[6]);}
+else if(ponovitve==2){regOne.pinOff(enice[2]);delay(2);regOne.pinOn(enice[2]);}
+else if(ponovitve==3){regOne.pinOff(enice[3]);delay(2);regOne.pinOn(enice[3]);}
+else if(ponovitve==4){regOne.pinOff(enice[4]);delay(2);regOne.pinOn(enice[4]);}
+else if(ponovitve==5){regOne.pinOff(enice[5]);delay(2);regOne.pinOn(enice[5]);}
+else if(ponovitve==6){regOne.pinOff(enice[6]);delay(2);regOne.pinOn(enice[6]);}
   break;
 
   case 1:
-    regOne.pinOn(enice[2]);
-    regOne.pinOn(enice[3]);
+if(ponovitve==1){regOne.pinOff(enice[2]);delay(2);regOne.pinOn(enice[2]);}
+else if(ponovitve==2){regOne.pinOff(enice[3]);delay(2);regOne.pinOn(enice[3]);}
   break;  
 
   case 2:
-    regOne.pinOn(enice[1]);
-    regOne.pinOn(enice[2]);
-    regOne.pinOn(enice[4]);
-    regOne.pinOn(enice[5]);
-    regOne.pinOn(enice[7]);   
+if(ponovitve==1){regOne.pinOff(enice[1]);delay(2);regOne.pinOn(enice[1]);}
+else if(ponovitve==2){regOne.pinOff(enice[2]);delay(2);regOne.pinOn(enice[2]);}
+else if(ponovitve==3){regOne.pinOff(enice[4]);delay(2);regOne.pinOn(enice[4]);}
+else if(ponovitve==4){regOne.pinOff(enice[5]);delay(2);regOne.pinOn(enice[5]);}
+else if(ponovitve==5){regOne.pinOff(enice[7]);delay(2);regOne.pinOn(enice[7]);}
   break;
 
   case 3:
-    regOne.pinOn(enice[1]);
-    regOne.pinOn(enice[2]);
-    regOne.pinOn(enice[3]);
-    regOne.pinOn(enice[4]);
-    regOne.pinOn(enice[7]);
+if(ponovitve==1){regOne.pinOff(enice[1]);delay(2);regOne.pinOn(enice[1]);}
+else if(ponovitve==2){regOne.pinOff(enice[2]);delay(2);regOne.pinOn(enice[2]);}
+else if(ponovitve==3){regOne.pinOff(enice[3]);delay(2);regOne.pinOn(enice[3]);}
+else if(ponovitve==4){regOne.pinOff(enice[4]);delay(2);regOne.pinOn(enice[4]);}
+else if(ponovitve==5){regOne.pinOff(enice[7]);delay(2);regOne.pinOn(enice[7]);}
   break;  
 
   case 4:
-    regOne.pinOn(enice[2]);
-    regOne.pinOn(enice[3]);
-    regOne.pinOn(enice[6]);
-    regOne.pinOn(enice[7]);
+if(ponovitve==1){regOne.pinOff(enice[2]);delay(2);regOne.pinOn(enice[2]);}
+else if(ponovitve==2){regOne.pinOff(enice[3]);delay(2);regOne.pinOn(enice[3]);}
+else if(ponovitve==3){regOne.pinOff(enice[6]);delay(2);regOne.pinOn(enice[6]);}
+else if(ponovitve==4){regOne.pinOff(enice[7]);delay(2);regOne.pinOn(enice[7]);}
   break;
 
   case 5:
-    regOne.pinOn(enice[1]);
-    regOne.pinOn(enice[3]);
-    regOne.pinOn(enice[4]);
-    regOne.pinOn(enice[6]);
-    regOne.pinOn(enice[7]);
+if(ponovitve==1){regOne.pinOff(enice[1]);delay(2);regOne.pinOn(enice[1]);}
+else if(ponovitve==2){regOne.pinOff(enice[3]);delay(2);regOne.pinOn(enice[3]);}
+else if(ponovitve==3){regOne.pinOff(enice[4]);delay(2);regOne.pinOn(enice[4]);}
+else if(ponovitve==4){regOne.pinOff(enice[6]);delay(2);regOne.pinOn(enice[6]);}
+else if(ponovitve==5){regOne.pinOff(enice[7]);delay(2);regOne.pinOn(enice[7]);}
   break;  
 
   case 6:
-    regOne.pinOn(enice[1]);
-    regOne.pinOn(enice[3]);
-    regOne.pinOn(enice[4]);
-    regOne.pinOn(enice[5]);
-    regOne.pinOn(enice[6]);
-    regOne.pinOn(enice[7]);
+if(ponovitve==1){regOne.pinOff(enice[1]);delay(2);regOne.pinOn(enice[1]);}
+else if(ponovitve==2){regOne.pinOff(enice[3]);delay(2);regOne.pinOn(enice[3]);}
+else if(ponovitve==3){regOne.pinOff(enice[4]);delay(2);regOne.pinOn(enice[4]);}
+else if(ponovitve==4){regOne.pinOff(enice[5]);delay(2);regOne.pinOn(enice[5]);}
+else if(ponovitve==5){regOne.pinOff(enice[6]);delay(2);regOne.pinOn(enice[6]);}
+else if(ponovitve==6){regOne.pinOff(enice[7]);delay(2);regOne.pinOn(enice[7]);}
   break;  
 
   case 7:
-    regOne.pinOn(enice[1]);
-    regOne.pinOn(enice[2]);
-    regOne.pinOn(enice[3]);
+if(ponovitve==1){regOne.pinOff(enice[1]);delay(2);regOne.pinOn(enice[1]);}
+else if(ponovitve==2){regOne.pinOff(enice[2]);delay(2);regOne.pinOn(enice[2]);}
+else if(ponovitve==3){regOne.pinOff(enice[3]);delay(2);regOne.pinOn(enice[3]);}
   break; 
 
   case 8:
-    regOne.pinOn(enice[1]);
-    regOne.pinOn(enice[2]);
-    regOne.pinOn(enice[3]);
-    regOne.pinOn(enice[4]);
-    regOne.pinOn(enice[5]);
-    regOne.pinOn(enice[6]);
-    regOne.pinOn(enice[7]);
+if(ponovitve==1){regOne.pinOff(enice[1]);delay(2);regOne.pinOn(enice[1]);}
+else if(ponovitve==2){regOne.pinOff(enice[2]);delay(2);regOne.pinOn(enice[2]);}
+else if(ponovitve==3){regOne.pinOff(enice[3]);delay(2);regOne.pinOn(enice[3]);}
+else if(ponovitve==4){regOne.pinOff(enice[4]);delay(2);regOne.pinOn(enice[4]);}
+else if(ponovitve==5){regOne.pinOff(enice[5]);delay(2);regOne.pinOn(enice[5]);}
+else if(ponovitve==6){regOne.pinOff(enice[6]);delay(2);regOne.pinOn(enice[6]);}
+else if(ponovitve==7){regOne.pinOff(enice[7]);delay(2);regOne.pinOn(enice[7]);}
   break;   
 
   case 9:
-    regOne.pinOn(enice[1]);
-    regOne.pinOn(enice[2]);
-    regOne.pinOn(enice[3]);
-    regOne.pinOn(enice[4]);
-    regOne.pinOn(enice[6]);
-    regOne.pinOn(enice[7]);
-  break;  
-} 
+if(ponovitve==1){regOne.pinOff(enice[1]);delay(2);regOne.pinOn(enice[1]);}
+else if(ponovitve==2){regOne.pinOff(enice[2]);delay(2);regOne.pinOn(enice[2]);}
+else if(ponovitve==3){regOne.pinOff(enice[3]);delay(2);regOne.pinOn(enice[3]);}
+else if(ponovitve==4){regOne.pinOff(enice[4]);delay(2);regOne.pinOn(enice[4]);}
+else if(ponovitve==5){regOne.pinOff(enice[6]);delay(2);regOne.pinOn(enice[6]);}
+else if(ponovitve==6){regOne.pinOff(enice[7]);delay(2);regOne.pinOn(enice[7]);}
+  break; } 
+ 
 switch(cifra/10){
   
   case 0:
-if(ponovitve==1){regOne.pinOff(enice[1]);delay(2);regOne.pinOn(enice[1]);}
-else if(ponovitve==2){regOne.pinOn(enice[2]);delay(2);regOne.pinOn(enice[2]);}
-else if(ponovitve==3){regOne.pinOn(enice[3]);delay(2);regOne.pinOn(enice[3]);}
-else if(ponovitve==4){regOne.pinOn(enice[4]);delay(2);regOne.pinOn(enice[4]);}
-else if(ponovitve==5){regOne.pinOn(enice[5]);delay(2);regOne.pinOn(enice[5]);}
-else if(ponovitve==6){regOne.pinOn(enice[6]);delay(2);regOne.pinOn(enice[6]);}
+if(ponovitve==1){regOne.pinOff(desetice[1]);delay(2);regOne.pinOn(desetice[1]);}
+else if(ponovitve==2){regOne.pinOff(desetice[2]);delay(2);regOne.pinOn(desetice[2]);}
+else if(ponovitve==3){regOne.pinOff(desetice[3]);delay(2);regOne.pinOn(desetice[3]);}
+else if(ponovitve==4){regOne.pinOff(desetice[4]);delay(2);regOne.pinOn(desetice[4]);}
+else if(ponovitve==5){regOne.pinOff(desetice[5]);delay(2);regOne.pinOn(desetice[5]);}
+else if(ponovitve==6){regOne.pinOff(desetice[6]);delay(2);regOne.pinOn(desetice[6]);}
   break;
 
   case 1:
-    regOne.pinOn(desetice[2]);
-    regOne.pinOn(desetice[3]);
+if(ponovitve==1){regOne.pinOff(desetice[2]);delay(2);regOne.pinOn(desetice[2]);}
+else if(ponovitve==2){regOne.pinOff(desetice[3]);delay(2);regOne.pinOn(desetice[3]);}
   break;  
 
   case 2:
-    regOne.pinOn(desetice[1]);
-    regOne.pinOn(desetice[2]);
-    regOne.pinOn(desetice[4]);
-    regOne.pinOn(desetice[5]);
-    regOne.pinOn(desetice[7]);   
+if(ponovitve==1){regOne.pinOff(desetice[1]);delay(2);regOne.pinOn(desetice[1]);}
+else if(ponovitve==2){regOne.pinOff(desetice[2]);delay(2);regOne.pinOn(desetice[2]);}
+else if(ponovitve==3){regOne.pinOff(desetice[4]);delay(2);regOne.pinOn(desetice[4]);}
+else if(ponovitve==4){regOne.pinOff(desetice[5]);delay(2);regOne.pinOn(desetice[5]);}
+else if(ponovitve==5){regOne.pinOff(desetice[7]);delay(2);regOne.pinOn(desetice[7]);}
   break;
 
   case 3:
-    regOne.pinOn(desetice[1]);
-    regOne.pinOn(desetice[2]);
-    regOne.pinOn(desetice[3]);
-    regOne.pinOn(desetice[4]);
-    regOne.pinOn(desetice[7]);
+if(ponovitve==1){regOne.pinOff(desetice[1]);delay(2);regOne.pinOn(desetice[1]);}
+else if(ponovitve==2){regOne.pinOff(desetice[2]);delay(2);regOne.pinOn(desetice[2]);}
+else if(ponovitve==3){regOne.pinOff(desetice[3]);delay(2);regOne.pinOn(desetice[3]);}
+else if(ponovitve==4){regOne.pinOff(desetice[4]);delay(2);regOne.pinOn(desetice[4]);}
+else if(ponovitve==5){regOne.pinOff(desetice[7]);delay(2);regOne.pinOn(desetice[7]);}
   break;  
 
   case 4:
-    regOne.pinOn(desetice[2]);
-    regOne.pinOn(desetice[3]);
-    regOne.pinOn(desetice[6]);
-    regOne.pinOn(desetice[7]);
+if(ponovitve==1){regOne.pinOff(desetice[2]);delay(2);regOne.pinOn(desetice[2]);}
+else if(ponovitve==2){regOne.pinOff(desetice[3]);delay(2);regOne.pinOn(desetice[3]);}
+else if(ponovitve==3){regOne.pinOff(desetice[6]);delay(2);regOne.pinOn(desetice[6]);}
+else if(ponovitve==4){regOne.pinOff(desetice[7]);delay(2);regOne.pinOn(desetice[7]);}
   break;
 
   case 5:
-    regOne.pinOn(desetice[1]);
-    regOne.pinOn(desetice[3]);
-    regOne.pinOn(desetice[4]);
-    regOne.pinOn(desetice[6]);
-    regOne.pinOn(desetice[7]);
+if(ponovitve==1){regOne.pinOff(desetice[1]);delay(2);regOne.pinOn(desetice[1]);}
+else if(ponovitve==2){regOne.pinOff(desetice[3]);delay(2);regOne.pinOn(desetice[3]);}
+else if(ponovitve==3){regOne.pinOff(desetice[4]);delay(2);regOne.pinOn(desetice[4]);}
+else if(ponovitve==4){regOne.pinOff(desetice[6]);delay(2);regOne.pinOn(desetice[6]);}
+else if(ponovitve==5){regOne.pinOff(desetice[7]);delay(2);regOne.pinOn(desetice[7]);}
   break;  
 
   case 6:
-    regOne.pinOn(desetice[1]);
-    regOne.pinOn(desetice[3]);
-    regOne.pinOn(desetice[4]);
-    regOne.pinOn(desetice[5]);
-    regOne.pinOn(desetice[6]);
-    regOne.pinOn(desetice[7]);
+if(ponovitve==1){regOne.pinOff(desetice[1]);delay(2);regOne.pinOn(desetice[1]);}
+else if(ponovitve==2){regOne.pinOff(desetice[3]);delay(2);regOne.pinOn(desetice[3]);}
+else if(ponovitve==3){regOne.pinOff(desetice[4]);delay(2);regOne.pinOn(desetice[4]);}
+else if(ponovitve==4){regOne.pinOff(desetice[5]);delay(2);regOne.pinOn(desetice[5]);}
+else if(ponovitve==5){regOne.pinOff(desetice[6]);delay(2);regOne.pinOn(desetice[6]);}
+else if(ponovitve==6){regOne.pinOff(desetice[7]);delay(2);regOne.pinOn(desetice[7]);}
   break;  
 
   case 7:
-    regOne.pinOn(desetice[1]);
-    regOne.pinOn(desetice[2]);
-    regOne.pinOn(desetice[3]);
+if(ponovitve==1){regOne.pinOff(desetice[1]);delay(2);regOne.pinOn(desetice[1]);}
+else if(ponovitve==2){regOne.pinOff(desetice[2]);delay(2);regOne.pinOn(desetice[2]);}
+else if(ponovitve==3){regOne.pinOff(desetice[3]);delay(2);regOne.pinOn(desetice[3]);}
   break; 
 
   case 8:
-    regOne.pinOn(desetice[1]);
-    regOne.pinOn(desetice[2]);
-    regOne.pinOn(desetice[3]);
-    regOne.pinOn(desetice[4]);
-    regOne.pinOn(desetice[5]);
-    regOne.pinOn(desetice[6]);
-    regOne.pinOn(desetice[7]);
+if(ponovitve==1){regOne.pinOff(desetice[1]);delay(2);regOne.pinOn(desetice[1]);}
+else if(ponovitve==2){regOne.pinOff(desetice[2]);delay(2);regOne.pinOn(desetice[2]);}
+else if(ponovitve==3){regOne.pinOff(desetice[3]);delay(2);regOne.pinOn(desetice[3]);}
+else if(ponovitve==4){regOne.pinOff(desetice[4]);delay(2);regOne.pinOn(desetice[4]);}
+else if(ponovitve==5){regOne.pinOff(desetice[5]);delay(2);regOne.pinOn(desetice[5]);}
+else if(ponovitve==6){regOne.pinOff(desetice[6]);delay(2);regOne.pinOn(desetice[6]);}
+else if(ponovitve==7){regOne.pinOff(desetice[7]);delay(2);regOne.pinOn(desetice[7]);}
   break;   
 
   case 9:
-    regOne.pinOn(desetice[1]);
-    regOne.pinOn(desetice[2]);
-    regOne.pinOn(desetice[3]);
-    regOne.pinOn(desetice[4]);
-    regOne.pinOn(desetice[6]);
-    regOne.pinOn(desetice[7]);
+if(ponovitve==1){regOne.pinOff(desetice[1]);delay(2);regOne.pinOn(desetice[1]);}
+else if(ponovitve==2){regOne.pinOff(desetice[2]);delay(2);regOne.pinOn(desetice[2]);}
+else if(ponovitve==3){regOne.pinOff(desetice[3]);delay(2);regOne.pinOn(desetice[3]);}
+else if(ponovitve==4){regOne.pinOff(desetice[4]);delay(2);regOne.pinOn(desetice[4]);}
+else if(ponovitve==5){regOne.pinOff(desetice[6]);delay(2);regOne.pinOn(desetice[6]);}
+else if(ponovitve==6){regOne.pinOff(desetice[7]);delay(2);regOne.pinOn(desetice[7]);}
   break; } 
   }
 }}//Serial.print("Stopnja  ");Serial.println(cifra);  
@@ -683,17 +684,17 @@ cilj[mesto]=vrednost;
 for(int t=0;t<(stopnja+1);t++)//animacija za Simon Says
   {
   //for(int b=0;b<80;b++)lucke(cilj[t],0.5); //cifra v b-for loopu diktira koliko dolgo je LED prižgana
-  lucke(cilj[t],50);
-  pwm_zaslon(150,0);//spremeni
+  lucke(cilj[t],150000,0);
+  pwm_zaslon(100000,0);//cajt med prizigom luck
   }
 }
 
 int igra()
-{int tipka=0;stopnja=0;
+{int tipka=0;//stopnja=0;
 while(!izguba){
 randomSeed(analogRead(A3));//Serial.print("stopnja:");Serial.println(stopnja);
 //rezultat(stopnja,0);delay(2);rezultat(stopnja,1);
-pwm_zaslon(300,0);
+//pwm_zaslon(300,0);
 izziv(random(1,26),stopnja);
 //Serial.println("New Level");
 for(int runda=0;(runda<(stopnja+1))&&(izguba!=1);runda++)
@@ -712,11 +713,11 @@ for(int runda=0;(runda<(stopnja+1))&&(izguba!=1);runda++)
     regOne.pinOff(vrstice[i]);//delay(1);
     regOne.pinOn(stolpci[i]);//delay(1);
   }
-  lucke(tipka,400);
+  lucke(tipka,60000,0);
  if(izbor[runda]!=cilj[runda]){
   delay(2);Serial.println("Game Over");animacija_tipkovnice(1);izguba=1;zacasno=0;stanje=0;prej=0;}
   else{izguba=0;/*Serial.println("Bravo");*/pwm_zaslon(500,0);/*delay(2);*/}/*rezultat(stopnja,1)*/
-  }if(izguba!=1)stopnja=stopnja+1;
+  }if(izguba!=1)stopnja=stopnja+1;pwm_zaslon(200000,0);
   }izguba=0;
 }
 
@@ -725,15 +726,15 @@ void animacija_tipkovnice(int mode){
   switch(mode){
     case 1:
       for(int q=0;q<40;q++){//šopanje PWMja
-        lucke(1,pavza);
-        lucke(5,pavza);
-        lucke(7,pavza);
-        lucke(9,pavza);
-        lucke(13,pavza);
-        lucke(17,pavza);
-        lucke(19,pavza);
-        lucke(21,pavza);
-        lucke(25,pavza);
+        lucke(1,pavza,1);
+        lucke(5,pavza,1);
+        lucke(7,pavza,1);
+        lucke(9,pavza,1);
+        lucke(13,pavza,1);
+        lucke(17,pavza,1);
+        lucke(19,pavza,1);
+        lucke(21,pavza,1);
+        lucke(25,pavza,1);
       }
     break;
 
@@ -761,7 +762,7 @@ void loop()
   Serial.println(branje_tipkovnice());}*/
 
   rezultat(stopnja,0,0);
-  if (zacasno) {digitalWrite(START_LED,0);delay(1500);igra();}
+  if (zacasno) {stopnja=0;digitalWrite(START_LED,0);/*delay(1500)*/pwm_zaslon(400000,0);igra();}
   if((millis()-prej)>=400){prej=millis();stanje=!stanje;} //400 je hitrost utripanja LED [50%PWM]
   digitalWrite(START_LED,stanje);//Serial.print("prej:");Serial.print(prej);Serial.print("  millis:");Serial.println(millis());
   delay(0.5);rezultat(stopnja,0,1);delay(1);
