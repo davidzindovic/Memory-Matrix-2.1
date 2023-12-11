@@ -8,7 +8,7 @@
 #include <ShiftPinNo.h>
 
 #define zamik 1 //refresh rate zaslona
-#define zamik_luck 100
+#define zamik_luck 10
 #define START_GUMB 2
 #define START_LED 3
 
